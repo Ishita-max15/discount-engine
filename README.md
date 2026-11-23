@@ -1,87 +1,182 @@
-# Opptra Discount Engine — Base Implementation
+# Opptra Discount Engine
 
-This is the base implementation for the Opptra FDE Intern assignment.
-Fork this repo, complete the tasks in the assignment brief, and submit your GitHub link + Loom.
+A React-based discount engine developed as part of the Opptra Forward Deployed Engineer (FDE) internship assignment.
 
-## Running locally
+The application allows users to upload shopping carts and discount rules, calculate applicable discounts, generate discount rules using natural language, and extract cart information from PDF files.
+
+## Features
+
+### 1. Discount Calculation Engine
+- Supports brand-level and platform-level discounts.
+- Supports percentage-based and flat discounts.
+- Selects the non-stackable discount offering the highest savings in rupees.
+- Applies eligible stackable discounts after the winning non-stackable discount.
+- Returns the original price when no offers match.
+
+### 2. Cart-Level Discounts
+- Supports cart-level percentage and flat discounts.
+- Applies discounts when the cart subtotal meets the minimum purchase threshold.
+- Calculates cart-level savings separately from item-level discounts.
+- Supports stackable cart-level discounts.
+
+### 3. CSV Upload
+- Upload discount rules through CSV files.
+- Upload shopping cart data through CSV files.
+- Validates required fields and reports parsing errors.
+
+### 4. Natural Language Discount Rule Generation
+- Generate discount rules using natural language descriptions.
+- Uses the Groq API to interpret user instructions.
+- Supports percentage-based, flat, brand-level, platform-level and cart-level rules.
+- Validates generated rules before allowing them to be added.
+- Provides clarification when the requested rule is incomplete or ambiguous.
+
+### 5. PDF Cart Upload
+- Upload PDF files containing product and pricing information.
+- Extracts product, brand, platform and base price information.
+- Converts extracted information into cart items for discount calculation.
+- Supports PDFs containing selectable text and structured tabular information.
+- Scanned PDFs requiring OCR are not currently supported.
+
+### 6. Automated Testing
+- Uses Vitest for automated testing.
+- Includes 10 test cases covering discount calculations, rule matching, discount stacking, cart processing and cart-level discount thresholds.
+
+## Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| React | User interface |
+| Vite | Development server and build tool |
+| JavaScript | Application logic |
+| PapaParse | CSV parsing |
+| PDF.js | PDF text extraction |
+| Groq API | Natural language rule generation |
+| Vitest | Automated testing |
+| Vercel | Deployment and API hosting |
+
+## Project Structure
+
+```text
+discount-engine/
+├── api/
+│   └── parse-rule.js
+├── public/
+├── sample-data/
+│   ├── cart.csv
+│   └── rules.csv
+├── src/
+│   ├── components/
+│   │   ├── CsvUploader.jsx
+│   │   ├── DataTable.jsx
+│   │   ├── ErrorBanner.jsx
+│   │   ├── NaturalLanguageRule.jsx
+│   │   └── PdfCartUploader.jsx
+│   ├── engine/
+│   │   ├── csvParser.js
+│   │   ├── discountEngine.js
+│   │   └── discountEngine.test.js
+│   ├── App.jsx
+│   ├── index.css
+│   └── main.jsx
+├── .env.local
+├── .gitignore
+├── package.json
+├── package-lock.json
+├── vite.config.js
+└── README.md
+```
+
+## Installation and Setup
+
+### Prerequisites
+- Node.js
+- npm
+- Groq API key (required for natural language rule generation)
+
+### 1. Clone the repository
+
+```bash
+git clone YOUR_GITHUB_REPOSITORY_URL
+cd discount-engine
+```
+
+### 2. Install dependencies
 
 ```bash
 npm install
+```
+
+### 3. Configure environment variables
+
+Create a `.env.local` file in the project root:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=your_supported_groq_model
+```
+
+Replace the placeholder values with your actual Groq API credentials and supported model.
+
+**Important:** Never commit `.env.local` or expose your API key in the frontend or public repository.
+
+### 4. Start the application
+
+For the frontend-only development server:
+
+```bash
 npm run dev
 ```
 
-Open http://localhost:5173
-
-## Deploying
+For the complete application, including the natural-language API endpoint, use:
 
 ```bash
-npm run build
+npx vercel dev --listen 3011
 ```
 
-Deploy the `dist/` folder to Vercel, Netlify, or any static host.
-The live deployment URL must be in your README before submission.
+Open:
 
-## How to use
-
-1. Upload `sample-data/rules.csv` as the discount rules input
-2. Upload `sample-data/cart.csv` as the cart input
-3. Click **Calculate Discounts**
-
-## Project structure
-
-```
-src/
-  engine/
-    discountEngine.js   ← pure discount logic (no UI)
-    csvParser.js        ← CSV → typed objects
-  components/
-    CsvUploader.jsx     ← file upload area
-    DataTable.jsx       ← reusable table
-    ErrorBanner.jsx     ← parse error display
-  App.jsx               ← main UI + state
-  main.jsx              ← entry point
-
-sample-data/
-  rules.csv             ← sample discount rules
-  cart.csv              ← sample cart items
+```text
+http://localhost:3011
 ```
 
-## CSV formats
+The Vercel development server runs the frontend and the API endpoint together.
 
-**rules.csv**
+## How to Use
 
-| Column     | Type              | Example          |
-|------------|-------------------|------------------|
-| rule_id    | string            | RULE-01          |
-| scope      | brand \| platform | platform         |
-| applies_to | string            | Amazon India     |
-| type       | percentage \| flat| percentage       |
-| value      | number            | 15               |
-| stackable  | true \| false     | false            |
+### CSV-based discount calculation
 
-**cart.csv**
+1. Upload `sample-data/rules.csv` as the discount rules input.
+2. Upload `sample-data/cart.csv` as the shopping cart input.
+3. Click **Calculate Discounts**.
+4. Review the applied offers, savings and final cart total.
 
-| Column     | Type   | Example      |
-|------------|--------|--------------|
-| item_id    | string | ITEM-01      |
-| product    | string | Cushion Cover|
-| brand      | string | Natura Casa  |
-| platform   | string | Amazon India |
-| base_price | number | 1299         |
+### Natural Language Rule Generation
 
-## Discount logic
+1. Enter a discount instruction in natural language.
+2. Submit the instruction for processing.
+3. Review the generated rule.
+4. Confirm and add the validated rule to the discount rules list.
 
-- When multiple non-stackable rules match an item, the one giving the **largest saving in rupees** is applied.
-- Rules marked `stackable: true` apply **on top of** the winning non-stackable rule.
-- If no rules match, the base price is returned with a "No offers available" note.
+### PDF Cart Upload
 
-## Expected results for the sample data
+1. Upload a supported PDF containing product information.
+2. Allow the application to extract the product details.
+3. Review the extracted cart items.
+4. Use the extracted cart for discount calculation.
 
-| Item    | Base Price | Final Price | Reasoning                              |
-|---------|-----------|-------------|----------------------------------------|
-| ITEM-01 | Rs.1,299  | Rs.1,104    | Platform offer: 15% off (beats Rs.150) |
-| ITEM-02 | Rs.849    | Rs.629      | Brand offer: Rs.150 off + Platform 10% |
-| ITEM-03 | Rs.599    | Rs.509      | Platform offer: 15% off                |
-| ITEM-04 | Rs.2,499  | Rs.2,499    | No offers available                    |
-| ITEM-05 | Rs.449    | Rs.382      | Platform offer: 15% off                |
-| ITEM-06 | Rs.899    | Rs.809      | Platform offer: 10% off                |
+## CSV Formats
+
+### Discount Rules CSV
+
+| Column | Description | Example |
+|---|---|---|
+| rule_id | Unique rule identifier | RULE-01 |
+| scope | Discount scope | brand / platform / cart |
+| applies_to | Brand or platform target; blank for cart rules | Amazon India |
+| type | Discount type | percentage / flat |
+| value | Discount value | 15 |
+| stackable | Whether the rule can be combined with other eligible discounts | true / false |
+| min_cart_value | Minimum cart subtotal required for cart-level rules | 4000 |
+
+For item-level rules, `min_cart_value` is not applicable. Cart
