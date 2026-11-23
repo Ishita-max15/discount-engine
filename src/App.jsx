@@ -1,8 +1,14 @@
+
 import { useState } from 'react'
+
 import CsvUploader from './components/CsvUploader.jsx'
+import PdfCartUploader from './components/PdfCartUploader.jsx'
 import DataTable from './components/DataTable.jsx'
 import ErrorBanner from './components/ErrorBanner.jsx'
+import NaturalLanguageRule from './components/NaturalLanguageRule.jsx'
+
 import { parseRulesCSV, parseCartCSV } from './engine/csvParser.js'
+
 import {
   processCart,
   cartTotal,
@@ -21,7 +27,8 @@ const RULES_COLUMNS = [
   {
     key: 'appliesTo',
     label: 'Applies To',
-    render: (v, row) => row.scope === 'cart' ? 'Entire cart' : v,
+    render: (v, row) =>
+      row.scope === 'cart' ? 'Entire cart' : v,
   },
   {
     key: 'type',
@@ -32,12 +39,17 @@ const RULES_COLUMNS = [
     key: 'value',
     label: 'Value',
     render: (v, row) =>
-      row.type === 'percentage' ? `${v}% off` : `Rs.${v} off`,
+      row.type === 'percentage'
+        ? `${v}% off`
+        : `Rs.${v} off`,
   },
   {
     key: 'minCartValue',
     label: 'Minimum Cart Value',
-    render: (v) => v === null ? '—' : `Rs.${v.toLocaleString('en-IN')}`,
+    render: (v) =>
+      v === null || v === undefined
+        ? '—'
+        : `Rs.${v.toLocaleString('en-IN')}`,
   },
   {
     key: 'stackable',
@@ -99,7 +111,8 @@ const RESULTS_COLUMNS = [
       <span
         style={{
           color: v === 'No offers available' ? '#888' : '#131A48',
-          fontStyle: v === 'No offers available' ? 'italic' : 'normal',
+          fontStyle:
+            v === 'No offers available' ? 'italic' : 'normal',
         }}
       >
         {v}
@@ -116,6 +129,7 @@ const S = {
     background: '#f7f7f9',
     fontFamily: 'Arial, sans-serif',
   },
+
   header: {
     background: '#131A48',
     padding: '0.85rem 2rem',
@@ -123,6 +137,7 @@ const S = {
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+
   logoTxt: {
     fontFamily: 'Georgia, serif',
     fontSize: 17,
@@ -130,18 +145,22 @@ const S = {
     color: '#fff',
     letterSpacing: '-0.02em',
   },
+
   logoSpan: { color: '#FF5800' },
+
   headerSub: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.5)',
     textTransform: 'uppercase',
     letterSpacing: '0.07em',
   },
+
   main: {
     maxWidth: 1100,
     margin: '0 auto',
     padding: '1.8rem 1.5rem',
   },
+
   section: {
     background: '#fff',
     border: '1px solid #CECECE',
@@ -149,6 +168,7 @@ const S = {
     padding: '1.2rem 1.4rem',
     marginBottom: '1.2rem',
   },
+
   sectionTitle: {
     fontFamily: 'Georgia, serif',
     fontWeight: 700,
@@ -159,11 +179,13 @@ const S = {
     borderBottom: '2px solid #FF5800',
     display: 'inline-block',
   },
+
   grid2: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: '1rem',
   },
+
   btn: {
     background: '#FF5800',
     color: '#fff',
@@ -176,6 +198,7 @@ const S = {
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
   },
+
   btnDisabled: {
     background: '#CECECE',
     color: '#fff',
@@ -188,6 +211,7 @@ const S = {
     letterSpacing: '0.04em',
     textTransform: 'uppercase',
   },
+
   totalRow: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -197,11 +221,21 @@ const S = {
     paddingTop: '0.75rem',
     borderTop: '1px solid #ddd',
   },
-  totalLabel: { fontWeight: 700, fontSize: 14, color: '#131A48' },
-  totalValue: { fontWeight: 700, fontSize: 16, color: '#131A48' },
+
+  totalLabel: {
+    fontWeight: 700,
+    fontSize: 14,
+    color: '#131A48',
+  },
+
+  totalValue: {
+    fontWeight: 700,
+    fontSize: 16,
+    color: '#131A48',
+  },
 }
 
-// ── Component ────────────────────────────────────────────────────
+// ── Main application ─────────────────────────────────────────────
 
 export default function App() {
   const [rules, setRules] = useState([])
@@ -215,7 +249,7 @@ export default function App() {
   const [results, setResults] = useState(null)
   const [cartOffer, setCartOffer] = useState(null)
 
-  // ── File upload handlers ──
+  // ── CSV upload handlers ──
 
   function handleRulesLoad(csvText, fileName) {
     const { data, errors } = parseRulesCSV(csvText)
@@ -223,6 +257,7 @@ export default function App() {
     setRules(data)
     setRulesErr(errors)
     setRulesFileName(fileName)
+
     setResults(null)
     setCartOffer(null)
   }
@@ -233,6 +268,31 @@ export default function App() {
     setCartItems(data)
     setCartErrors(errors)
     setCartFileName(fileName)
+
+    setResults(null)
+    setCartOffer(null)
+  }
+
+  // ── PDF cart upload handler ──
+
+  function handlePdfCartLoad(items, fileName) {
+    setCartItems(items)
+    setCartErrors([])
+    setCartFileName(fileName)
+
+    setResults(null)
+    setCartOffer(null)
+  }
+
+  // ── Add AI-generated rule ──
+
+  function handleAddRule(newRule) {
+    setRules((currentRules) => [
+      ...currentRules,
+      newRule,
+    ])
+
+    setRulesErr([])
     setResults(null)
     setCartOffer(null)
   }
@@ -263,19 +323,37 @@ export default function App() {
 
   return (
     <div style={S.page}>
+
+      {/* Header */}
+
       <div style={S.header}>
         <div style={S.logoTxt}>
           O<span style={S.logoSpan}>pp</span>tra
         </div>
-        <div style={S.headerSub}>Discount Engine</div>
+
+        <div style={S.headerSub}>
+          Discount Engine
+        </div>
       </div>
 
       <div style={S.main}>
+
+        {/* Natural language rule generator */}
+
+        <NaturalLanguageRule
+          onAddRule={handleAddRule}
+        />
+
         {/* Upload sections */}
 
         <div style={S.grid2}>
+
+          {/* Rules upload */}
+
           <div style={S.section}>
-            <div style={S.sectionTitle}>Discount Rules</div>
+            <div style={S.sectionTitle}>
+              Discount Rules
+            </div>
 
             <CsvUploader
               label="rules.csv"
@@ -289,6 +367,7 @@ export default function App() {
 
             {rules.length > 0 && (
               <div style={{ marginTop: '0.75rem' }}>
+
                 <div
                   style={{
                     fontSize: 11,
@@ -299,26 +378,51 @@ export default function App() {
                   {rules.length} rule{rules.length > 1 ? 's' : ''} loaded
                 </div>
 
-                <DataTable columns={RULES_COLUMNS} rows={rules} />
+                <DataTable
+                  columns={RULES_COLUMNS}
+                  rows={rules}
+                />
+
               </div>
             )}
           </div>
 
-          <div style={S.section}>
-            <div style={S.sectionTitle}>Cart Items</div>
+          {/* Cart upload */}
 
-            <CsvUploader
-              label="cart.csv"
-              description="Upload your cart CSV"
-              onLoad={handleCartLoad}
-              hasData={cartItems.length > 0}
-              fileName={cartFileName}
-            />
+          <div style={S.section}>
+            <div style={S.sectionTitle}>
+              Cart Items
+            </div>
+
+            <div style={{ display: 'grid', gap: '0.7rem' }}>
+
+              <CsvUploader
+                label="cart.csv"
+                description="Upload your cart CSV"
+                onLoad={handleCartLoad}
+                hasData={
+                  cartItems.length > 0 &&
+                  cartFileName.toLowerCase().endsWith('.csv')
+                }
+                fileName={cartFileName}
+              />
+
+              <PdfCartUploader
+                onLoad={handlePdfCartLoad}
+                hasData={
+                  cartItems.length > 0 &&
+                  cartFileName.toLowerCase().endsWith('.pdf')
+                }
+                fileName={cartFileName}
+              />
+
+            </div>
 
             <ErrorBanner errors={cartErrors} />
 
             {cartItems.length > 0 && (
               <div style={{ marginTop: '0.75rem' }}>
+
                 <div
                   style={{
                     fontSize: 11,
@@ -330,10 +434,15 @@ export default function App() {
                   {cartItems.length > 1 ? 's' : ''} loaded
                 </div>
 
-                <DataTable columns={CART_COLUMNS} rows={cartItems} />
+                <DataTable
+                  columns={CART_COLUMNS}
+                  rows={cartItems}
+                />
+
               </div>
             )}
           </div>
+
         </div>
 
         {/* Calculate button */}
@@ -369,9 +478,15 @@ export default function App() {
 
         {results && cartOffer && (
           <div style={S.section}>
-            <div style={S.sectionTitle}>Cart Summary</div>
 
-            <DataTable columns={RESULTS_COLUMNS} rows={results} />
+            <div style={S.sectionTitle}>
+              Cart Summary
+            </div>
+
+            <DataTable
+              columns={RESULTS_COLUMNS}
+              rows={results}
+            />
 
             {/* Item-level subtotal */}
 
@@ -385,7 +500,7 @@ export default function App() {
               </span>
             </div>
 
-            {/* Separate cart-level discount */}
+            {/* Cart-level discount */}
 
             <div
               style={{
@@ -396,7 +511,9 @@ export default function App() {
               }}
             >
               <div>
-                <div style={S.totalLabel}>Cart-level offer</div>
+                <div style={S.totalLabel}>
+                  Cart-level offer
+                </div>
 
                 <div
                   style={{
@@ -414,7 +531,10 @@ export default function App() {
               <span
                 style={{
                   fontWeight: 700,
-                  color: cartOffer.discount > 0 ? '#1e5c2c' : '#888',
+                  color:
+                    cartOffer.discount > 0
+                      ? '#1e5c2c'
+                      : '#888',
                 }}
               >
                 {cartOffer.discount > 0
@@ -423,7 +543,7 @@ export default function App() {
               </span>
             </div>
 
-            {/* Final total */}
+            {/* Final cart total */}
 
             <div
               style={{
@@ -432,7 +552,9 @@ export default function App() {
                 marginTop: '1rem',
               }}
             >
-              <span style={S.totalLabel}>Final Cart Total</span>
+              <span style={S.totalLabel}>
+                Final Cart Total
+              </span>
 
               <span
                 style={{
@@ -444,8 +566,10 @@ export default function App() {
                 Rs.{cartOffer.finalTotal.toLocaleString('en-IN')}
               </span>
             </div>
+
           </div>
         )}
+
       </div>
     </div>
   )
